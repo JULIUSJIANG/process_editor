@@ -1,6 +1,6 @@
 import globalContext from "../GlobalContext";
 
-export function getResolution (resolution: number) {
+export default function getResolution (resolution: number) {
     let aspectRatio = globalContext.gl.drawingBufferWidth / globalContext.gl.drawingBufferHeight;
     if (aspectRatio < 1)
         aspectRatio = 1.0 / aspectRatio;

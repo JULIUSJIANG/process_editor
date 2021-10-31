@@ -2,7 +2,7 @@ import globalContext from "../GlobalContext";
 import FBO from "../struct/FBO";
 import createDoubleFBO from "./createDoubleFBO";
 import createFBO from "./createFBO";
-import { getResolution } from "./getResolution";
+import getResolution from "./getResolution";
 import initBloomFramebuffers from "./initBloomFramebuffers";
 import initSunraysFramebuffers from "./initSunraysFramebuffers";
 import resizeDoubleFBO from "./resizeDoubleFBO";

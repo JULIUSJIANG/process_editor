@@ -1,4 +1,4 @@
-import { HSVtoRGB } from "./HSVtoRGB";
+import HSVtoRGB from "./HSVtoRGB";
 
 export default function generateColor() {
     let c = HSVtoRGB(Math.random(), 1.0, 1.0);

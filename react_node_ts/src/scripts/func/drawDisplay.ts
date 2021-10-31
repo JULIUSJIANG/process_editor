@@ -1,6 +1,6 @@
 import globalContext from "../GlobalContext";
 import FBO from "../struct/FBO";
-import { getTextureScale } from "./getTextureScale";
+import getTextureScale from "./getTextureScale";
 
 export default function drawDisplay (target: FBO) {
     let width = target == null ? globalContext.gl.drawingBufferWidth : target.width;

@@ -1,6 +1,6 @@
 import globalContext from "../GlobalContext";
 import multipleSplats from "./multipleSplats";
-import { splatPointer } from "./splatPointer";
+import splatPointer from "./splatPointer";
 
 export default function applyInputs () {
     if (globalContext.splatStack.length > 0)

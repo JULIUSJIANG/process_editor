@@ -1,6 +1,6 @@
 import globalContext from "../GlobalContext";
 import createFBO from "./createFBO";
-import { getResolution } from "./getResolution";
+import getResolution from "./getResolution";
 
 export default function initBloomFramebuffers () {
     let res = getResolution(globalContext.config.BLOOM_RESOLUTION);

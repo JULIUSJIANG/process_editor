@@ -1,6 +1,6 @@
 import globalContext from "../GlobalContext";
 import createFBO from "./createFBO";
-import { getResolution } from "./getResolution";
+import getResolution from "./getResolution";
 
 export default function initSunraysFramebuffers() {
     let res = getResolution(globalContext.config.SUNRAYS_RESOLUTION);
