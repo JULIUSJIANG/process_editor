@@ -1,11 +1,11 @@
 import globalContext from "../GlobalContext";
 
 export default class FBO {
-    texture: WebGLTexture = null as any;
-    fbo: WebGLFramebuffer = null as any;
-    width: number = null as any;
-    height: number = null as any;
-    texelSizeX: number = null as any;
-    texelSizeY: number = null as any;
-    attach: (id: number) => number = null as any;
+    texture: WebGLTexture;;
+    fbo: WebGLFramebuffer;;
+    width: number;;
+    height: number;;
+    texelSizeX: number;;
+    texelSizeY: number;;
+    attach: (id: number) => number;;
 }

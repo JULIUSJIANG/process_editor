@@ -1,3 +1,7 @@
+import compileShader from "./func/compileShader";
+import createTextureAsync from "./func/createTextureAsync";
+import getWebGLContext from "./func/getWebGLContext";
+import initFramebuffers from "./func/initFramebuffers";
 import { advectionShaderTxt } from "./shader/advectionShaderTxt";
 import { baseVertexShaderTxt } from "./shader/baseVertexShaderTxt";
 import { bloomBlurShaderTxt } from "./shader/bloomBlurShaderTxt";
@@ -18,6 +22,8 @@ import { splatShaderTxt } from "./shader/splatShaderTxt";
 import { sunraysMaskShaderTxt } from "./shader/sunraysMaskShaderTxt";
 import { sunraysShaderTxt } from "./shader/sunraysShaderTxt";
 import { vorticityShaderTxt } from "./shader/vorticityShaderTxt";
+import Color from "./struct/Color";
+import DoubleFBO from "./struct/DoubleFBO";
 import FBO from "./struct/FBO";
 import { GLContext } from "./struct/GLContext";
 import { GLExt } from "./struct/GLExt";
@@ -65,6 +71,8 @@ namespace globalContext {
 
     export let gl: WebGLRenderingContext & WebGL2RenderingContext;
 
+    export let canvas: HTMLCanvasElement;
+
     export let ext: GLExt;
 
     export let baseVertexShader: WebGLShader;
@@ -89,42 +97,43 @@ namespace globalContext {
 
     export let blit: (target: FBO, clear: any) => void;
 
-    let dye;
-    let velocity;
-    let divergence;
-    let curl;
-    let pressure;
-    let bloom;
-    let bloomFramebuffers = [];
-    let sunrays;
-    let sunraysTemp;
+    export let dye: DoubleFBO;
+    export let velocity: DoubleFBO;
+    export let divergence: any;
+    export let curl: any;
+    export let pressure: any;
+    export let bloom: FBO;
+    export let bloomFramebuffers: WebGLFramebuffer[] = [];
+    export let sunrays: any;
+    export let sunraysTemp: any;
 
-    let ditheringTexture: Texture;
+    export let ditheringTexture: Texture;
 
-    let blurProgram: Program;
-    let copyProgram: Program;
-    let clearProgram: Program;
-    let colorProgram: Program;
-    let checkerboardProgram: Program;
-    let bloomPrefilterProgram: Program;
-    let bloomBlurProgram: Program;
-    let bloomFinalProgram: Program;
-    let sunraysMaskProgram: Program;
-    let sunraysProgram: Program;
-    let splatProgram: Program;
-    let advectionProgram: Program;
-    let divergenceProgram: Program;
-    let curlProgram: Program;
-    let vorticityProgram: Program;
-    let pressureProgram: Program;
-    let gradienSubtractProgram: Program;
+    export let blurProgram: Program;
+    export let copyProgram: Program;
+    export let clearProgram: Program;
+    export let colorProgram: Program;
+    export let checkerboardProgram: Program;
+    export let bloomPrefilterProgram: Program;
+    export let bloomBlurProgram: Program;
+    export let bloomFinalProgram: Program;
+    export let sunraysMaskProgram: Program;
+    export let sunraysProgram: Program;
+    export let splatProgram: Program;
+    export let advectionProgram: Program;
+    export let divergenceProgram: Program;
+    export let curlProgram: Program;
+    export let vorticityProgram: Program;
+    export let pressureProgram: Program;
+    export let gradienSubtractProgram: Program;
 
-    let displayMaterial: Material;
+    export let displayMaterial: Material;
 
-    export function init(canvas: HTMLCanvasElement) {
-        const { gl, ext } = getWebGLContext(canvas);
-        globalContext.gl = gl;
-        globalContext.ext = ext;
+    export function init(canvasInput: HTMLCanvasElement) {
+        canvas = canvasInput;
+        const glCtx = getWebGLContext(canvasInput);
+        gl = glCtx.gl;
+        ext = glCtx.ext;
 
         baseVertexShader = compileShader(gl.VERTEX_SHADER, baseVertexShaderTxt, null as any);
         blurVertexShader = compileShader(gl.VERTEX_SHADER, blurVertexShaderTxt, null as any);
@@ -191,244 +200,8 @@ namespace globalContext {
         gradienSubtractProgram = new Program(baseVertexShader, gradientSubtractShader);
 
         displayMaterial = new Material(baseVertexShaderTxt, displayShaderSourceTxt);
-    }
 
-    function getWebGLContext(canvas: HTMLCanvasElement): GLContext {
-        const params = { alpha: true, depth: false, stencil: false, antialias: false, preserveDrawingBuffer: false };
-
-        let gl = canvas.getContext('webgl2', params) as WebGLRenderingContext & WebGL2RenderingContext;
-        const isWebGL2 = !!gl;
-        if (!isWebGL2)
-            gl = canvas.getContext('webgl', params) || canvas.getContext('experimental-webgl', params) as any;
-
-        let halfFloat: OES_texture_half_float;
-        let supportLinearFiltering: OES_texture_float_linear;
-        let halfFloatTexType: number;
-        if (isWebGL2) {
-            gl.getExtension('EXT_color_buffer_float');
-            supportLinearFiltering = gl.getExtension('OES_texture_float_linear') as any;
-            halfFloatTexType = gl.HALF_FLOAT;
-        } else {
-            halfFloat = gl.getExtension('OES_texture_half_float') as any;
-            supportLinearFiltering = gl.getExtension('OES_texture_half_float_linear') as any;
-            halfFloatTexType = halfFloat && halfFloat.HALF_FLOAT_OES;
-        }
-
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        let formatRGBA;
-        let formatRG;
-        let formatR;
-
-        if (isWebGL2) {
-            formatRGBA = getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, halfFloatTexType);
-            formatRG = getSupportedFormat(gl, gl.RG16F, gl.RG, halfFloatTexType);
-            formatR = getSupportedFormat(gl, gl.R16F, gl.RED, halfFloatTexType);
-        }
-        else {
-            formatRGBA = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-            formatRG = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-            formatR = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
-        }
-
-        return {
-            gl,
-            ext: {
-                formatRGBA,
-                formatRG,
-                formatR,
-                halfFloatTexType,
-                supportLinearFiltering
-            }
-        };
-    }
-
-    function getSupportedFormat(gl: WebGLRenderingContext & WebGL2RenderingContext, internalFormat: number, format: number, type: number): { internalFormat: number, format: number } {
-        if (!supportRenderTextureFormat(gl, internalFormat, format, type)) {
-            switch (internalFormat) {
-                case gl.R16F:
-                    return getSupportedFormat(gl, gl.RG16F, gl.RG, type);
-                case gl.RG16F:
-                    return getSupportedFormat(gl, gl.RGBA16F, gl.RGBA, type);
-                default:
-                    return null as any;
-            }
-        }
-
-        return {
-            internalFormat,
-            format
-        }
-    }
-
-    function supportRenderTextureFormat(gl: WebGLRenderingContext & WebGL2RenderingContext, internalFormat: number, format: number, type: number) {
-        let texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, 4, 4, 0, format, type, null);
-
-        let fbo = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-
-        let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-        return status == gl.FRAMEBUFFER_COMPLETE;
-    }
-
-    function framebufferToTexture(target: FBO) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
-        let length = target.width * target.height * 4;
-        let texture = new Float32Array(length);
-        gl.readPixels(0, 0, target.width, target.height, gl.RGBA, gl.FLOAT, texture);
-        return texture;
-    }
-
-    function normalizeTexture(texture: Float32Array, width: number, height: number) {
-        let result = new Uint8Array(texture.length);
-        let id = 0;
-        for (let i = height - 1; i >= 0; i--) {
-            for (let j = 0; j < width; j++) {
-                let nid = i * width * 4 + j * 4;
-                result[nid + 0] = clamp01(texture[id + 0]) * 255;
-                result[nid + 1] = clamp01(texture[id + 1]) * 255;
-                result[nid + 2] = clamp01(texture[id + 2]) * 255;
-                result[nid + 3] = clamp01(texture[id + 3]) * 255;
-                id += 4;
-            }
-        }
-        return result;
-    }
-
-    function clamp01(input: number) {
-        return Math.min(Math.max(input, 0), 1);
-    }
-
-    export function createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader) {
-        let program = gl.createProgram() as WebGLProgram;
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-            console.trace(gl.getProgramInfoLog(program));
-
-        return program;
-    }
-
-    export function getUniforms(program: WebGLProgram) {
-        let uniforms: WebGLUniformLocation[] = [];
-        let uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-        for (let i = 0; i < uniformCount; i++) {
-            let uniformName = (gl.getActiveUniform(program, i) as WebGLActiveInfo).name;
-            uniforms[uniformName as any] = gl.getUniformLocation(program, uniformName) as WebGLUniformLocation;
-        }
-        return uniforms;
-    }
-
-    export function compileShader(type: number, source: string, keywords: string[]) {
-        source = addKeywords(source, keywords);
-
-        const shader = gl.createShader(type) as WebGLShader;
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
-            console.trace(gl.getShaderInfoLog(shader));
-
-        return shader;
-    };
-
-    function addKeywords(source: string, keywords: string[]) {
-        if (keywords == null) return source;
-        let keywordsString = '';
-        keywords.forEach(keyword => {
-            keywordsString += '#define ' + keyword + '\n';
-        });
-        return keywordsString + source;
-    }
-
-    function createFBO(w: number, h: number, internalFormat: number, format: number, type: number, param: number): FBO {
-        gl.activeTexture(gl.TEXTURE0);
-        let texture = gl.createTexture() as WebGLTexture;
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, param);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, param);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, type, null);
-
-        let fbo = gl.createFramebuffer() as WebGLFramebuffer;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-        gl.viewport(0, 0, w, h);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
-        let texelSizeX = 1.0 / w;
-        let texelSizeY = 1.0 / h;
-
-        return {
-            texture,
-            fbo,
-            width: w,
-            height: h,
-            texelSizeX,
-            texelSizeY,
-            attach(id: number) {
-                gl.activeTexture(gl.TEXTURE0 + id);
-                gl.bindTexture(gl.TEXTURE_2D, texture);
-                return id;
-            }
-        };
-    }
-
-    export function hashCode(s: string) {
-        if (s.length == 0) return 0;
-        let hash = 0;
-        for (let i = 0; i < s.length; i++) {
-            hash = (hash << 5) - hash + s.charCodeAt(i);
-            hash |= 0; // Convert to 32bit integer
-        }
-        return hash;
-    }
-
-    function CHECK_FRAMEBUFFER_STATUS() {
-        let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-        if (status != gl.FRAMEBUFFER_COMPLETE)
-            console.trace("Framebuffer error: " + status);
-    }
-
-    function createTextureAsync(url: string): Texture {
-        let texture = gl.createTexture() as WebGLTexture;
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255]));
-
-        let obj = {
-            texture,
-            width: 1,
-            height: 1,
-            attach(id: number) {
-                gl.activeTexture(gl.TEXTURE0 + id);
-                gl.bindTexture(gl.TEXTURE_2D, texture);
-                return id;
-            }
-        };
-
-        let image = new Image();
-        image.onload = () => {
-            obj.width = image.width;
-            obj.height = image.height;
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
-        };
-        image.src = url;
-
-        return obj;
+        initFramebuffers();
     }
 }
 export default globalContext;
