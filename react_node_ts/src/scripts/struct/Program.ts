@@ -7,7 +7,7 @@ export class Program {
 
     public program: WebGLProgram;;
 
-    public uniforms: WebGLUniformLocation[] & UniformParams = [] as any;
+    public uniforms: UniformParams = new UniformParams as any;
 
     constructor (vertexShader: WebGLShader, fragmentShader: WebGLShader) {
         this.program = createProgram(vertexShader, fragmentShader);

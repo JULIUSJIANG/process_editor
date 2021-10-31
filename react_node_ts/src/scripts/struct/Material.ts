@@ -3,6 +3,7 @@ import createProgram from "../func/createProgram";
 import getUniforms from "../func/getUniforms";
 import hashCode from "../func/hashCode";
 import globalContext from "../GlobalContext";
+import UniformParams from "./UniformParams";
 
 export default class Material {
 
@@ -12,7 +13,7 @@ export default class Material {
 
     public programs: WebGLProgram[] = [];
 
-    public uniforms: WebGLUniformLocation[] = [];
+    public uniforms: UniformParams = new UniformParams();
 
     public activeProgram: WebGLProgram;;
 

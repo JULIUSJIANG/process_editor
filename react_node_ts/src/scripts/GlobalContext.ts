@@ -2,6 +2,12 @@ import compileShader from "./func/compileShader";
 import createTextureAsync from "./func/createTextureAsync";
 import getWebGLContext from "./func/getWebGLContext";
 import initFramebuffers from "./func/initFramebuffers";
+import multipleSplats from "./func/multipleSplats";
+import scaleByPixelRatio from "./func/scaleByPixelRatio";
+import update from "./func/update";
+import updatePointerDownData from "./func/updatePointerDownData";
+import updatePointerMoveData from "./func/updatePointerMoveData";
+import updatePointerUpData from "./func/updatePointerUpData";
 import { advectionShaderTxt } from "./shader/advectionShaderTxt";
 import { baseVertexShaderTxt } from "./shader/baseVertexShaderTxt";
 import { bloomBlurShaderTxt } from "./shader/bloomBlurShaderTxt";
@@ -103,7 +109,7 @@ namespace globalContext {
     export let curl: any;
     export let pressure: any;
     export let bloom: FBO;
-    export let bloomFramebuffers: WebGLFramebuffer[] = [];
+    export let bloomFramebuffers: FBO[] = [];
     export let sunrays: any;
     export let sunraysTemp: any;
 
@@ -128,6 +134,9 @@ namespace globalContext {
     export let gradienSubtractProgram: Program;
 
     export let displayMaterial: Material;
+
+    export let lastUpdateTime: number;
+    export let colorUpdateTimer: number;
 
     export function init(canvasInput: HTMLCanvasElement) {
         canvas = canvasInput;
@@ -202,6 +211,67 @@ namespace globalContext {
         displayMaterial = new Material(baseVertexShaderTxt, displayShaderSourceTxt);
 
         initFramebuffers();
+        multipleSplats(parseInt(Math.random() * 20 + ``) + 5);
+
+        lastUpdateTime = Date.now();
+        colorUpdateTimer = 0;
+
+        update();
+
+        canvas.addEventListener('mousedown', e => {
+            let posX = scaleByPixelRatio(e.offsetX);
+            let posY = scaleByPixelRatio(e.offsetY);
+            let pointer = pointers.find(p => p.id == -1);
+            if (pointer == null)
+                pointer = new PointerPrototype();
+            updatePointerDownData(pointer, -1, posX, posY);
+        });
+        
+        canvas.addEventListener('mousemove', e => {
+            let pointer = pointers[0];
+            if (!pointer.down) return;
+            let posX = scaleByPixelRatio(e.offsetX);
+            let posY = scaleByPixelRatio(e.offsetY);
+            updatePointerMoveData(pointer, posX, posY);
+        });
+        
+        window.addEventListener('mouseup', () => {
+            updatePointerUpData(pointers[0]);
+        });
+        
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            const touches = e.targetTouches;
+            while (touches.length >= pointers.length)
+                pointers.push(new PointerPrototype());
+            for (let i = 0; i < touches.length; i++) {
+                let posX = scaleByPixelRatio(touches[i].pageX);
+                let posY = scaleByPixelRatio(touches[i].pageY);
+                updatePointerDownData(pointers[i + 1], touches[i].identifier, posX, posY);
+            }
+        });
+        
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            const touches = e.targetTouches;
+            for (let i = 0; i < touches.length; i++) {
+                let pointer = pointers[i + 1];
+                if (!pointer.down) continue;
+                let posX = scaleByPixelRatio(touches[i].pageX);
+                let posY = scaleByPixelRatio(touches[i].pageY);
+                updatePointerMoveData(pointer, posX, posY);
+            }
+        }, false);
+        
+        window.addEventListener('touchend', e => {
+            const touches = e.changedTouches;
+            for (let i = 0; i < touches.length; i++)
+            {
+                let pointer = pointers.find(p => p.id == touches[i].identifier);
+                if (pointer == null) continue;
+                updatePointerUpData(pointer);
+            }
+        });
     }
 }
 export default globalContext;

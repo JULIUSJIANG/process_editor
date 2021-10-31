@@ -1,3 +1,5 @@
+import Color from "./Color";
+
 export class PointerPrototype {
     id = -1;
     texcoordX = 0;
@@ -8,5 +10,5 @@ export class PointerPrototype {
     deltaY = 0;
     down = false;
     moved = false;
-    color = [30, 0, 300];
+    color: Color = [30, 0, 300] as any;
 }
