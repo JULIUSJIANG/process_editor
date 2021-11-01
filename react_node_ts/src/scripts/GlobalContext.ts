@@ -6,6 +6,7 @@ import multipleSplats from "./func/multipleSplats";
 import resizeCanvas from "./func/resizeCanvas";
 import scaleByPixelRatio from "./func/scaleByPixelRatio";
 import update from "./func/update";
+import updateKeywords from "./func/updateKeywords";
 import updatePointerDownData from "./func/updatePointerDownData";
 import updatePointerMoveData from "./func/updatePointerMoveData";
 import updatePointerUpData from "./func/updatePointerUpData";
@@ -29,10 +30,8 @@ import { splatShaderTxt } from "./shader/splatShaderTxt";
 import { sunraysMaskShaderTxt } from "./shader/sunraysMaskShaderTxt";
 import { sunraysShaderTxt } from "./shader/sunraysShaderTxt";
 import { vorticityShaderTxt } from "./shader/vorticityShaderTxt";
-import Color from "./struct/Color";
 import DoubleFBO from "./struct/DoubleFBO";
 import FBO from "./struct/FBO";
-import { GLContext } from "./struct/GLContext";
 import { GLExt } from "./struct/GLExt";
 import Material from "./struct/Material";
 import { PointerPrototype } from "./struct/PointerPrototype";
@@ -40,6 +39,8 @@ import { Program } from "./struct/Program";
 import Texture from "./struct/Texture";
 
 const globalContext = {
+    canvas: null as HTMLCanvasElement,
+
     config: {
         SIM_RESOLUTION: 128,
         DYE_RESOLUTION: 1024,
@@ -77,8 +78,6 @@ const globalContext = {
     splatStack: [] as number[],
 
     gl: null as WebGLRenderingContext & WebGL2RenderingContext,
-
-    canvas: null as HTMLCanvasElement,
 
     ext: null as GLExt,
 
@@ -211,8 +210,9 @@ const globalContext = {
         this.pressureProgram = new Program(this.baseVertexShader, this.pressureShader);
         this.gradienSubtractProgram = new Program(this.baseVertexShader, this.gradientSubtractShader);
 
-        this.displayMaterial = new Material(baseVertexShaderTxt, displayShaderSourceTxt);
+        this.displayMaterial = new Material(this.baseVertexShader, displayShaderSourceTxt);
 
+        updateKeywords();
         initFramebuffers();
         multipleSplats(parseInt(Math.random() * 20 + ``) + 5);
 

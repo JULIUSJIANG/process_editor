@@ -7,7 +7,7 @@ import UniformParams from "./UniformParams";
 
 export default class Material {
 
-    public vertexShader: string;;
+    public vertexShader: WebGLShader;;
 
     public fragmentShaderSource: string;;
 
@@ -17,7 +17,7 @@ export default class Material {
 
     public activeProgram: WebGLProgram;;
 
-    constructor (vertexShader: string, fragmentShaderSource: string) {
+    constructor (vertexShader: WebGLShader, fragmentShaderSource: string) {
         this.vertexShader = vertexShader;
         this.fragmentShaderSource = fragmentShaderSource;
     }
